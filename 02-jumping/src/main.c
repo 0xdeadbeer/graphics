@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
                 switch_animation(player, idle_animation);
             if (game.jump) {
                 switch_animation(player, jump_animation);
-                player->force -= movement_speed * 3;
+                player->force -= movement_speed * 2.5;
                 player->y += player->force;
                 player->colliding = 0;
             }
