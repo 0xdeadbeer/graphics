@@ -27,6 +27,8 @@ void key(SDL_KeyboardEvent *event) {
         game.left = !game.left;
     if (event->keysym.scancode == SDL_SCANCODE_D)
         game.right = !game.right;
+    if (event->keysym.scancode == SDL_SCANCODE_SPACE)
+        game.jump = !game.jump;
 }
 
 void handle_input(void) {
@@ -125,7 +127,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    game.window = SDL_CreateWindow("01-introduction", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_FLAGS);
+    game.window = SDL_CreateWindow("02-jumping", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_FLAGS);
 
     if (game.window == NULL) {
         fprintf(stderr, "Error: could not create window\n%s\n", SDL_GetError());
@@ -142,6 +144,7 @@ int main(int argc, char *argv[]) {
     // load player animations 
     SDL_Texture *idle_animation = load_texture("assets/player/idle.png");
     SDL_Texture *run_animation = load_texture("assets/player/run.png");
+    SDL_Texture *jump_animation = load_texture("assets/player/jump.png");
 
     struct object *player = create_object(idle_animation, SCREEN_WIDTH/2, 0, 4, 48);
 
@@ -154,25 +157,41 @@ int main(int argc, char *argv[]) {
         prepare_scene();
         handle_input(); 
 
+        // The reason why I don't do 
+        // that much game development 
+        // in my free time. Damn youuu ifs
+        if (player->colliding) {
+            if (game.left)
+                switch_animation(player, run_animation);
+            if (game.right) 
+                switch_animation(player, run_animation);
+            if (!game.left && !game.right) 
+                switch_animation(player, idle_animation);
+            if (game.jump) {
+                switch_animation(player, jump_animation);
+                player->force -= movement_speed * 3;
+                player->y += player->force;
+                player->colliding = 0;
+            }
+        }
+
         if (game.left) {
             player->x -= movement_speed; 
             player->flip = SDL_FLIP_HORIZONTAL;
-            switch_animation(player, run_animation);
         }
         if (game.right) {
             player->x += movement_speed;
             player->flip = SDL_FLIP_NONE;
-            switch_animation(player, run_animation);
-        }
-        if (!game.right && !game.left) {
-            switch_animation(player, idle_animation);
         }
 
-        player->y += gravity;
-
-        if (player->y > SCREEN_HEIGHT-(player->resolution*player->scale)) {
-            player->y = SCREEN_HEIGHT-(player->resolution*player->scale);
+        if (player->y < 200) {
+            player->force += 2;
+        } else {
+            player->colliding = 1;
+            player->force = 0;
         }
+
+        player->y += player->force;
 
         draw_object(player);
 
