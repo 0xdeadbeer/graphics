@@ -1,9 +1,17 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-// DEBUG 
-#define GENERAL_DEBUG   0x0001
-#define PLAYER_DEBUG    0x0010
+#include <SDL2/SDL.h>
+
+// Server details
+#define SERVER_ADDR "127.0.0.1"
+#define SERVER_PORT 9080
+
+// SDL2 
+#define SCREEN_WIDTH 1000
+#define SCREEN_HEIGHT 480
+#define WINDOW_FLAGS SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
+#define RENDERER_FLAGS SDL_RENDERER_ACCELERATED
 
 // MCS: Message Communication Standard
 #define SERVER_MESSAGE_LEN 10
@@ -14,14 +22,10 @@
 #define OBJECT_PROPERTIES_FORMAT 1
 #define PLAYER_DISCONNECT_FORMAT 2
 
-// MCSA: Message Communication Standard Actions
+// MSCA: Message Communication Standard Actions
 #define LEFT_MOVEMENT   0b10000000
 #define RIGHT_MOVEMENT  0b01000000
 #define JUMP_MOVEMENT   0b00100000
 #define CROUCH_MOVEMENT 0b00010000
-
-// OC: Object Constants
-#define GRAVITY 2
-#define MOVEMENT_SPEED 10
 
 #endif 

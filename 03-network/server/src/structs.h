@@ -4,8 +4,9 @@
 #include <SDL2/SDL_net.h>
 
 struct connection {
-    TCPsocket socket;
+    int id;
     int obj_id;
+    TCPsocket socket;
 };
 
 struct object {
@@ -15,6 +16,8 @@ struct object {
 
     int colliding;
     int force;
+    
+    uint8_t state;
 };
 
 #endif

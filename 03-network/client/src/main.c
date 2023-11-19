@@ -3,18 +3,11 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_net.h>
 #include "structs.h"
+#include "defs.h"
 
 #define DEBUG 1
-#define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 9080
-#define SERVER_MESSAGE_LEN 10 // 0-1 BYTE: Action details, 2-9: Other data (not sure we even need this)
-#define CLIENT_MESSAGE_LEN 4 // 4 PROPERTIES (each of 4 BYTES)
 
-const int SCREEN_WIDTH = 1000; 
-const int SCREEN_HEIGHT = 480;
-const Uint32 WINDOW_FLAGS = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL; 
-const Uint32 RENDERER_FLAGS = SDL_RENDERER_ACCELERATED;
-int GAME_RUNNING = 1;
+int game_running = 1;
 struct game game; 
 int movement_speed = 10;
 double delta_time; 
@@ -25,6 +18,15 @@ TCPsocket server_socket;
 
 // scene 
 struct object *player;
+
+// textures
+SDL_Texture *idle_animation;
+SDL_Texture *jump_animation;
+SDL_Texture *run_animation;
+
+
+int objects_count = 0;
+struct object ** objects_map;
 
 void prepare_scene(void) {
     SDL_SetRenderDrawColor(game.renderer, 96, 128, 255, 255);
@@ -49,7 +51,7 @@ void handle_input(void) {
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_QUIT: 
-                GAME_RUNNING = 0; 
+                game_running = 0; 
                 break;
             case SDL_KEYDOWN: 
             case SDL_KEYUP: 
@@ -58,9 +60,8 @@ void handle_input(void) {
             default:
                 break;
         }
-        if (event.type == SDL_QUIT) {
-            GAME_RUNNING = 0;
-        }
+        if (event.type == SDL_QUIT) 
+            game_running = 0;
     }
 }
 
@@ -131,6 +132,25 @@ void present_scene(void) {
     SDL_RenderPresent(game.renderer);
 }
 
+int new_key_position(void **map, int slots) {
+    int slot = 0; 
+
+    if (slots <= 0) 
+        return slot; 
+
+    if (map == NULL) 
+        return slot; 
+
+    while (slot <= slots) {
+        if (map[slots] == NULL) 
+            break;
+
+        slot++;
+    }
+
+    return slot;
+}
+
 int handle_server(void *data) {
     for (;;) {
         int message[CLIENT_MESSAGE_LEN];
@@ -144,10 +164,80 @@ int handle_server(void *data) {
         if (DEBUG) 
             fprintf(stdout, "Notice: received '%d' bytes from server\n", recv_len);
 
-        player->x = message[0];
-        player->y = message[1];
-        player->colliding = message[2];
-        player->force = message[3];
+        if (message[0] == PLAYER_CONNECT_FORMAT) {
+            if (DEBUG) 
+                fprintf(stdout, "DEBUG: PLAYER CONNECT MESSAGE\n");
+
+            if (message[1] >= objects_count) {
+                objects_map = (struct object **) realloc(objects_map, sizeof(struct object *)*message[1]);
+                objects_count = message[1]+1;
+            }
+            if (objects_map == NULL) {
+                fprintf(stderr, "Error: failed reallocating objects hash map\n");
+                return -1;
+            }
+
+            struct object *new_object = create_object(idle_animation, 4, 48);
+            if (new_object == NULL) {
+                fprintf(stderr, "Error: failed allocating memory for new object\n");
+                return -1;
+            }
+
+            new_object->id = message[1];
+            new_object->x = message[2]; 
+            new_object->y = message[3]; 
+            new_object->colliding = message[4]; 
+            new_object->force = message[5]; 
+            new_object->state = message[6];
+            objects_map[message[1]] = new_object;
+
+            continue; 
+        }
+
+        if (message[0] == OBJECT_PROPERTIES_FORMAT) {
+            if (DEBUG) 
+                fprintf(stdout, "DEBUG: OBJECT PROPERTIES MESSAGE FOR ID %d\n", message[1]);
+
+            if (message[1] >= objects_count) {
+                objects_map = (struct object **) realloc(objects_map, sizeof(struct object *)*message[1]);
+                objects_count = message[1]+1;
+            }
+            if (objects_map == NULL) {
+                fprintf(stderr, "Error: failed reallocating objects hash map\n");
+                return -1;
+            }
+
+            if (objects_map[message[1]] == NULL) {
+                struct object *new_object = create_object(idle_animation, 4, 48);
+                if (new_object == NULL) {
+                    fprintf(stderr, "Error: failed allocating memory for new object\n");
+                    return -1;
+                }
+
+                new_object->id = message[1];
+                objects_map[message[1]] = new_object;
+            }
+
+            objects_map[message[1]]->x = message[2];
+            objects_map[message[1]]->y = message[3];
+            objects_map[message[1]]->colliding = message[4];
+            objects_map[message[1]]->force = message[5];
+
+            objects_map[message[1]]->state = message[6];
+            continue; 
+        }
+
+        if (message[0] == PLAYER_DISCONNECT_FORMAT) {
+            if (DEBUG) 
+                fprintf(stdout, "DEBUG: PLAYER DISCONNECT MESSAGE\n");
+
+            int object_id = message[1]; 
+
+            free(objects_map[object_id]);
+            objects_map[object_id] = NULL; 
+
+            continue;
+        }
     }
 
     return 0; 
@@ -189,7 +279,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    game.renderer = SDL_CreateRenderer(game.window, -1, RENDERER_FLAGS);    
+    game.renderer = SDL_CreateRenderer(game.window, -1, RENDERER_FLAGS);
 
     if (game.renderer == NULL) {
         fprintf(stderr, "Error: could not create renderer\n%s\n", SDL_GetError());
@@ -197,17 +287,15 @@ int main(int argc, char *argv[]) {
     }
 
     // load player animations 
-    SDL_Texture *idle_animation = load_texture("assets/player/idle.png");
-    SDL_Texture *jump_animation = load_texture("assets/player/jump.png");
-    SDL_Texture *run_animation = load_texture("assets/player/run.png");
-
-    player = create_object(idle_animation, 4, 48);
+    idle_animation = load_texture("assets/player/idle.png");
+    jump_animation = load_texture("assets/player/jump.png");
+    run_animation = load_texture("assets/player/run.png");
 
     if (connect_to_server() != 0)
         return -1;
 
     // game loop
-    while (GAME_RUNNING) {
+    while (game_running) {
         double current_frame = SDL_GetTicks();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
@@ -215,42 +303,39 @@ int main(int argc, char *argv[]) {
         prepare_scene();
         handle_input(); 
 
+        uint8_t message[SERVER_MESSAGE_LEN];
+        message[0] = (game.left << 7)  | 
+                     (game.right << 6) |
+                     (game.jump << 5);
+
+        SDLNet_TCP_Send(server_socket, message, sizeof(uint8_t)*SERVER_MESSAGE_LEN);
+
         // The reason why I don't do 
         // that much game development 
         // in my free time. Damn youuu ifs
-        if (player->colliding) {
-            if (game.left)
-                switch_animation(player, run_animation);
-            if (game.right) 
-                switch_animation(player, run_animation);
-            if (!game.left && !game.right) 
-                switch_animation(player, idle_animation);
-            if (game.jump) {
-                switch_animation(player, jump_animation);
+        for (int iter = 0; iter < objects_count; iter++) {
+            struct object *obj = objects_map[iter];
+            if (obj == NULL) 
+                continue; 
 
-                uint8_t message[SERVER_MESSAGE_LEN];
-                message[0] = 2;
-
-                SDLNet_TCP_Send(server_socket, message, sizeof(uint8_t)*SERVER_MESSAGE_LEN);
+            if (obj->state & LEFT_MOVEMENT) {
+                switch_animation(obj, run_animation); 
+                obj->flip = SDL_FLIP_HORIZONTAL; 
             }
+
+            if (obj->state & RIGHT_MOVEMENT) {
+                switch_animation(obj, run_animation); 
+                obj->flip = SDL_FLIP_NONE;
+            }
+
+            if (!(obj->state & LEFT_MOVEMENT) && !(obj->state & RIGHT_MOVEMENT)) 
+                switch_animation(obj, idle_animation); 
+
+            if (obj->state & JUMP_MOVEMENT) 
+                switch_animation(obj, jump_animation);
+
+            draw_object(obj);
         }
-
-        if (game.left) {
-            player->flip = SDL_FLIP_HORIZONTAL;
-            uint8_t message[SERVER_MESSAGE_LEN];
-            message[0] = 1;
-
-            SDLNet_TCP_Send(server_socket, message, sizeof(uint8_t)*SERVER_MESSAGE_LEN);
-        }
-        if (game.right) {
-            player->flip = SDL_FLIP_NONE;
-            uint8_t message[SERVER_MESSAGE_LEN];
-            message[0] = 0;
-
-            SDLNet_TCP_Send(server_socket, message, sizeof(uint8_t)*SERVER_MESSAGE_LEN);
-        }
-
-        draw_object(player);
 
         present_scene();
 

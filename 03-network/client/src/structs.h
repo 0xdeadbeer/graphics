@@ -23,6 +23,7 @@ struct object {
     SDL_Texture *texture;
     int resolution;                 // of the texture/every tile
 
+    int id;
     int x; 
     int y;
     int scale;
@@ -32,6 +33,8 @@ struct object {
     double animation_clock;         // everytime it reaches 1, the texture switches to the next slide
     double animation_speed;         // how fast will the clock reach 1 with respect to delta_time
     int animation_slide;            // the current slide of the animation
+    
+    uint8_t state;
 
     int colliding;
     int force;
