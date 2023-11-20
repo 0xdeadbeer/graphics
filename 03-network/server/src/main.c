@@ -4,8 +4,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_net.h>
 #include <SDL2/SDL_error.h>
-#include "structs.h"
 #include "defs.h"
+#include "structs.h"
+#include "hashmap.h"
 
 #define DEBUG 0x0010
 #define PORT 9080
@@ -44,36 +45,7 @@ void handle_player_physics(struct object *obj) {
     obj->y += obj->force;
 }
 
-void send_player_positions(TCPsocket socket, int player_id) {
-    if (objects_map == NULL)
-        return;
-
-    for (int iter = 0; iter < objects_count; iter++) {
-        struct object *obj = objects_map[iter];
-        if (obj == NULL) 
-            continue;
-
-        // Update the client with every object's information
-        // Note: the order OBVIOUSLY matters
-        int reply[] = {
-            OBJECT_PROPERTIES_FORMAT,
-            obj->id,
-            obj->x,
-            obj->y,
-            obj->colliding,
-            obj->force,
-            obj->state
-        };
-
-        if (DEBUG & PLAYER_DEBUG) 
-            fprintf(stdout, "PLAYER_DEBUG: player '%d' properties (%d, %d, %d, %d)\n", 
-                    obj->id, obj->x, obj->y, obj->colliding, obj->force);
-
-        SDLNet_TCP_Send(socket, reply, sizeof(int)*CLIENT_MESSAGE_LEN);
-    }
-}
-
-int send_player_connect_event(int object_id) {
+int broadcast_event(int format, int object_id) {
     struct object *obj = objects_map[object_id];
 
     for (int iter = 0; iter < connections_count; iter++) {
@@ -82,34 +54,7 @@ int send_player_connect_event(int object_id) {
             continue; 
 
         int message[] = {
-            PLAYER_CONNECT_FORMAT,
-            obj->id,
-            obj->x, 
-            obj->y, 
-            obj->colliding, 
-            obj->force,
-            obj->state
-        };
-
-        if (DEBUG & PLAYER_DEBUG)
-            fprintf(stdout, "PLAYER_DEBUG: new player '%d' has connected to the server\n", obj->id);
-
-        SDLNet_TCP_Send(con->socket, message, sizeof(int)*CLIENT_MESSAGE_LEN);
-    }
-
-    return 0;
-}
-
-int send_player_disconnect_event(int object_id) {
-    struct object *obj = objects_map[object_id];
-
-    for (int iter = 0; iter < connections_count; iter++) {
-        struct connection *con = connections_map[iter]; 
-        if (con == NULL) 
-            continue; 
-
-        int message[] = {
-            PLAYER_DISCONNECT_FORMAT, 
+            format, 
             obj->id, 
             obj->x, 
             obj->y, 
@@ -117,9 +62,6 @@ int send_player_disconnect_event(int object_id) {
             obj->force,
             obj->state
         };
-
-        if (DEBUG & PLAYER_DEBUG)
-            fprintf(stdout, "PLAYER_DEBUG: player '%d' has disconnected from the server\n", obj->id);
 
         SDLNet_TCP_Send(con->socket, message, sizeof(int)*CLIENT_MESSAGE_LEN);
     }
@@ -143,7 +85,7 @@ int handle_player(void *data) {
         return -1;
     }
 
-    send_player_connect_event(connection_data->obj_id); 
+    broadcast_event(PLAYER_CONNECT_FORMAT, connection_data->obj_id);
 
     for (;;) {
         char message[SERVER_MESSAGE_LEN]; 
@@ -170,11 +112,11 @@ int handle_player(void *data) {
 
     update_client:
         handle_player_physics(obj);
-        send_player_positions(connection_data->socket, connection_data->obj_id);
+        broadcast_event(OBJECT_PROPERTIES_FORMAT, connection_data->obj_id);
     }
 
     // Communicate client disconnect
-    send_player_disconnect_event(connection_data->obj_id);
+    broadcast_event(PLAYER_DISCONNECT_FORMAT, connection_data->obj_id);
 
     SDLNet_FreeSocketSet(set);
     SDLNet_TCP_Close(connection_data->socket);
@@ -244,47 +186,28 @@ int main(int argc, char *argv[]) {
 
         fprintf(stdout, "Notice: accepted a connection from client!\n"); 
 
-        int new_object_position = new_key_position((void **) objects_map, objects_count); 
-        if (new_object_position == objects_count) {
-            objects_map = (struct object **) realloc(objects_map, sizeof(struct object *)*objects_count);
-            objects_count++;
-        }
-        if (objects_map == NULL) {
-            fprintf(stderr, "Error: failed reallocating objects hash map\n");
-            return -1;
+        int new_object_slot = allocate_value((void ***) &objects_map, &objects_count, sizeof(struct object));
+        if (new_object_slot == MEMERR) {
+            fprintf(stderr, "MEMERR: failed allocating memory for new object\n");
+            return STDERR;
         }
 
-        struct object *new_object = (struct object *) calloc(1, sizeof(struct object));
-        if (new_object == NULL) {
-            fprintf(stderr, "Error: failed allocating memory for new object\n");
-            return -1;
+        int new_connection_slot = allocate_value((void ***) &connections_map, &connections_count, sizeof(struct connection));
+        if (new_connection_slot == MEMERR) {
+            fprintf(stderr, "MEMERR: failed allocating memory for new connection\n");
+            return STDERR;
         }
 
-        int new_connection_position = new_key_position((void **) connections_map, connections_count);
-        if (new_connection_position == connections_count) {
-            connections_map = (struct connection **) realloc(connections_map, sizeof(struct connection *)*connections_count);
-            connections_count++;
-        }
-        if (connections_map == NULL) {
-            fprintf(stderr, "Error: failed reallocating connections hash map\n");
-            return -1;
-        }
+        struct object *new_object = objects_map[new_object_slot];
+        struct connection *new_connection = connections_map[new_connection_slot];
 
-        struct connection *new_connection = (struct connection *) calloc(1, sizeof(struct connection));
-        if (new_connection == NULL) {
-            fprintf(stderr, "Error: failed allocating memory for new connection object\n");
-            return -1;
-        }
-
-        objects_map[new_object_position] = new_object;
-        connections_map[new_connection_position] = new_connection;
-        new_object->id = new_object_position;
-        new_connection->id = new_connection_position;
+        new_object->id = new_object_slot;
+        new_connection->id = new_connection_slot;
         new_connection->socket = client;
-        new_connection->obj_id = new_object_position;
+        new_connection->obj_id = new_object_slot;
 
         if (DEBUG & PLAYER_DEBUG) 
-            fprintf(stdout, "Notice: new player object id: %d\n", new_object_position);
+            fprintf(stdout, "Created connection with id '%d' and object '%d'\n", new_connection->id, new_object->id);
 
         SDL_CreateThread(handle_player, "client", new_connection);
     }

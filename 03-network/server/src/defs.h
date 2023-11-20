@@ -5,6 +5,10 @@
 #define GENERAL_DEBUG   0x0001
 #define PLAYER_DEBUG    0x0010
 
+// ERRORS 
+#define STDERR -1
+#define MEMERR -2
+
 // MCS: Message Communication Standard
 #define SERVER_MESSAGE_LEN 10
 #define CLIENT_MESSAGE_LEN 7

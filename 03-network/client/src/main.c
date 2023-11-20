@@ -4,6 +4,7 @@
 #include <SDL2/SDL_net.h>
 #include "structs.h"
 #include "defs.h"
+#include "format.h"
 
 #define DEBUG 1
 
@@ -16,15 +17,12 @@ double last_frame;
 // network
 TCPsocket server_socket;
 
-// scene 
-struct object *player;
-
 // textures
 SDL_Texture *idle_animation;
-SDL_Texture *jump_animation;
 SDL_Texture *run_animation;
+SDL_Texture *jump_animation;
 
-
+// scene
 int objects_count = 0;
 struct object ** objects_map;
 
@@ -75,59 +73,6 @@ SDL_Texture *load_texture(const char *path) {
     return texture;
 }
 
-void switch_animation(struct object *object, SDL_Texture *animation) {
-    if (object->texture == animation)
-        return;
-
-    object->animation_slide = 0; 
-    object->texture = animation;
-}
-
-struct object *create_object(SDL_Texture *texture, int scale, int resolution) {
-    struct object *object = (struct object *) calloc(1, sizeof(struct object));
-
-    if (object == NULL) {
-        fprintf(stderr, "Error: failed allocating memory for new object\n");
-        return NULL;
-    }
-
-    object->texture = texture;
-    object->resolution = resolution;
-    object->animation_speed = 13;
-    object->scale = scale;
-
-    return object;
-}
-
-void draw_object(struct object *object) {
-    int texture_width; 
-    SDL_Rect src;
-    SDL_Rect dest;
-
-    src.x = object->animation_slide * object->resolution;
-    src.y = 0;
-
-    src.w = object->resolution;
-    src.h = object->resolution;
-
-    dest.x = object->x; 
-    dest.y = object->y; 
-    dest.w = object->resolution * object->scale;
-    dest.h = object->resolution * object->scale;
-
-    SDL_RenderCopyEx(game.renderer, object->texture, &src, &dest, 0, NULL, object->flip);
-
-    // update animation slide
-    SDL_QueryTexture(object->texture, NULL, NULL, &texture_width, NULL);
-
-    object->animation_clock += object->animation_speed*(delta_time/1000);
-
-    if (object->animation_clock >= 1) {
-        object->animation_clock = 0;    
-        object->animation_slide = (object->animation_slide+1) % (texture_width / object->resolution); // clock arithmetic: jump back to first animation slide 
-    }
-}
-
 void present_scene(void) {
     SDL_RenderPresent(game.renderer);
 }
@@ -168,28 +113,11 @@ int handle_server(void *data) {
             if (DEBUG) 
                 fprintf(stdout, "DEBUG: PLAYER CONNECT MESSAGE\n");
 
-            if (message[1] >= objects_count) {
-                objects_map = (struct object **) realloc(objects_map, sizeof(struct object *)*message[1]);
-                objects_count = message[1]+1;
+            int ret = handle_player_connect(message, &objects_map, &objects_count);
+            if (ret == MEMERR) {
+                fprintf(stderr, "MEMERR: Failed handling memory for player connect\n");
+                return MEMERR;
             }
-            if (objects_map == NULL) {
-                fprintf(stderr, "Error: failed reallocating objects hash map\n");
-                return -1;
-            }
-
-            struct object *new_object = create_object(idle_animation, 4, 48);
-            if (new_object == NULL) {
-                fprintf(stderr, "Error: failed allocating memory for new object\n");
-                return -1;
-            }
-
-            new_object->id = message[1];
-            new_object->x = message[2]; 
-            new_object->y = message[3]; 
-            new_object->colliding = message[4]; 
-            new_object->force = message[5]; 
-            new_object->state = message[6];
-            objects_map[message[1]] = new_object;
 
             continue; 
         }
@@ -197,33 +125,13 @@ int handle_server(void *data) {
         if (message[0] == OBJECT_PROPERTIES_FORMAT) {
             if (DEBUG) 
                 fprintf(stdout, "DEBUG: OBJECT PROPERTIES MESSAGE FOR ID %d\n", message[1]);
-
-            if (message[1] >= objects_count) {
-                objects_map = (struct object **) realloc(objects_map, sizeof(struct object *)*message[1]);
-                objects_count = message[1]+1;
-            }
-            if (objects_map == NULL) {
-                fprintf(stderr, "Error: failed reallocating objects hash map\n");
-                return -1;
+            
+            int ret = handle_object_properties(message, &objects_map, &objects_count);
+            if (ret == MEMERR) {
+                fprintf(stderr, "MEMERR: Failed handling memory for new object properties\n");
+                return MEMERR;
             }
 
-            if (objects_map[message[1]] == NULL) {
-                struct object *new_object = create_object(idle_animation, 4, 48);
-                if (new_object == NULL) {
-                    fprintf(stderr, "Error: failed allocating memory for new object\n");
-                    return -1;
-                }
-
-                new_object->id = message[1];
-                objects_map[message[1]] = new_object;
-            }
-
-            objects_map[message[1]]->x = message[2];
-            objects_map[message[1]]->y = message[3];
-            objects_map[message[1]]->colliding = message[4];
-            objects_map[message[1]]->force = message[5];
-
-            objects_map[message[1]]->state = message[6];
             continue; 
         }
 
@@ -334,7 +242,7 @@ int main(int argc, char *argv[]) {
             if (obj->state & JUMP_MOVEMENT) 
                 switch_animation(obj, jump_animation);
 
-            draw_object(obj);
+            draw_object(&game, obj);
         }
 
         present_scene();

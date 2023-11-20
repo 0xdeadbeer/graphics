@@ -22,8 +22,8 @@ struct animation {
 struct object {
     SDL_Texture *texture;
     int resolution;                 // of the texture/every tile
-
     int id;
+
     int x; 
     int y;
     int scale;
@@ -39,5 +39,9 @@ struct object {
     int colliding;
     int force;
 };
+
+struct object *create_object(SDL_Texture *texture, int scale, int resolution);
+void draw_object(struct game *game, struct object *object);
+void switch_animation(struct object *object, SDL_Texture *animation); 
 
 #endif 

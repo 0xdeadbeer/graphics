@@ -7,6 +7,11 @@
 #define SERVER_ADDR "127.0.0.1"
 #define SERVER_PORT 9080
 
+// ERRORS 
+#define STDOK 0
+#define STDERR -1 
+#define MEMERR -2
+
 // SDL2 
 #define SCREEN_WIDTH 1000
 #define SCREEN_HEIGHT 480
