@@ -1,4 +1,0 @@
-Message: 
- * 10 Bytes long 
- * 0-1 byte: action
- * 2-10 byte: additional data
