@@ -11,11 +11,13 @@
 #define DEBUG 0x0010
 #define PORT 9080
 
-int objects_count = 0;
 struct object **objects_map;
+int objects_map_size = 0;
+int objects_count = 0;
 
-int connections_count = 0; 
 struct connection **connections_map;
+int connections_map_size = 0; 
+int connections_count = 0; 
 
 void handle_player_input(struct object *obj, char *message) {
     uint8_t action = message[0];
@@ -26,8 +28,9 @@ void handle_player_input(struct object *obj, char *message) {
     if (action & LEFT_MOVEMENT)
         obj->x -= MOVEMENT_SPEED; 
 
-    if (action & JUMP_MOVEMENT) {
-        obj->force -= MOVEMENT_SPEED; 
+    if (obj->colliding && (action & JUMP_MOVEMENT)) {
+        obj->force -= MOVEMENT_SPEED * 3; 
+        obj->y += obj->force;
         obj->colliding = 0;
     }
 
@@ -35,12 +38,14 @@ void handle_player_input(struct object *obj, char *message) {
 }
 
 void handle_player_physics(struct object *obj) {
-    if (obj->y < 200) 
-        obj->force += GRAVITY; 
-    else {
-        obj->colliding = 1; 
-        obj->y = 200;
-    }
+    int touching_ground = obj->y >= 200;
+
+    if (touching_ground) {
+        obj->force = 0; 
+        obj->y = 200; 
+        obj->colliding = 1;
+    } else 
+        obj->force += GRAVITY;
 
     obj->y += obj->force;
 }
@@ -48,7 +53,7 @@ void handle_player_physics(struct object *obj) {
 int broadcast_event(int format, int object_id) {
     struct object *obj = objects_map[object_id];
 
-    for (int iter = 0; iter < connections_count; iter++) {
+    for (int iter = 0; iter < connections_map_size; iter++) {
         struct connection *con = connections_map[iter]; 
         if (con == NULL) 
             continue; 
@@ -120,8 +125,13 @@ int handle_player(void *data) {
 
     SDLNet_FreeSocketSet(set);
     SDLNet_TCP_Close(connection_data->socket);
+
     objects_map[connection_data->obj_id] = NULL;
+    objects_count--;
+
     connections_map[connection_data->id] = NULL;
+    connections_count--;
+
     free(obj);
     free(data);
 
@@ -186,13 +196,13 @@ int main(int argc, char *argv[]) {
 
         fprintf(stdout, "Notice: accepted a connection from client!\n"); 
 
-        int new_object_slot = allocate_value((void ***) &objects_map, &objects_count, sizeof(struct object));
+        int new_object_slot = allocate_value((void ***) &objects_map, &objects_map_size, &objects_count, sizeof(struct object));
         if (new_object_slot == MEMERR) {
             fprintf(stderr, "MEMERR: failed allocating memory for new object\n");
             return STDERR;
         }
 
-        int new_connection_slot = allocate_value((void ***) &connections_map, &connections_count, sizeof(struct connection));
+        int new_connection_slot = allocate_value((void ***) &connections_map, &connections_map_size, &connections_count, sizeof(struct connection));
         if (new_connection_slot == MEMERR) {
             fprintf(stderr, "MEMERR: failed allocating memory for new connection\n");
             return STDERR;
