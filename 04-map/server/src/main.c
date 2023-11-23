@@ -11,8 +11,8 @@
 
 #define DEBUG 0x0010
 #define PORT 9080
-#define MAP_WIDTH 100
-#define MAP_HEIGHT 100
+#define MAP_WIDTH 25
+#define MAP_HEIGHT 25
 
 struct connection **connections_map;
 int connections_map_size = 0; 

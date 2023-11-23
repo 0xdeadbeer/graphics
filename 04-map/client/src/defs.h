@@ -32,8 +32,8 @@
 #define CROUCH_MOVEMENT 0b00010000
 
 // BS: Block Standard
-#define GRASS_BLOCK     0b10000000
-#define COBBLE_BLOCK    0b01000000
-#define LAVA_BLOCK      0b00100000
+#define GRASS_BLOCK     0
+#define COBBLE_BLOCK    1
+#define LAVA_BLOCK      2
 
 #endif 

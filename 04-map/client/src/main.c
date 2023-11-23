@@ -9,8 +9,8 @@
 #include "defs.h"
 
 #define DEBUG 1
-#define MAP_WIDTH 100
-#define MAP_HEIGHT 100
+#define MAP_WIDTH 25
+#define MAP_HEIGHT 25
 
 int original_width = 1000;
 int original_height = 480;

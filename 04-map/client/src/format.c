@@ -16,13 +16,13 @@ int handle_block_creation(int id, int type, struct object ***map, int *slots) {
 
     SDL_Texture *texture; 
     switch (type) {
-        case 0: 
+        case GRASS_BLOCK: 
             texture = grass_texture; 
             break; 
-        case 1: 
+        case COBBLE_BLOCK: 
             texture = cobble_texture; 
             break; 
-        case 2: 
+        case LAVA_BLOCK: 
             texture = lava_texture; 
             break;
         default: 

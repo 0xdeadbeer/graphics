@@ -29,8 +29,8 @@
 #define MOVEMENT_SPEED 10
 
 // BS: Block Standard
-#define GRASS_BLOCK     1
-#define COBBLE_BLOCK    2
-#define LAVA_BLOCK      3
+#define GRASS_BLOCK     0
+#define COBBLE_BLOCK    1
+#define LAVA_BLOCK      2
 
 #endif 
