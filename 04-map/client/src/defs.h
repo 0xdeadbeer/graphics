@@ -13,14 +13,12 @@
 #define MEMERR -2
 
 // SDL2 
-#define SCREEN_WIDTH 1000
-#define SCREEN_HEIGHT 480
 #define WINDOW_FLAGS SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
 #define RENDERER_FLAGS SDL_RENDERER_ACCELERATED
 
 // MCS: Message Communication Standard
 #define SERVER_MESSAGE_LEN 10
-#define CLIENT_MESSAGE_LEN 7
+#define CLIENT_MESSAGE_LEN 10
 
 // MFS: Message Format Standard
 #define PLAYER_CONNECT_FORMAT 0
@@ -30,8 +28,12 @@
 // MSCA: Message Communication Standard Actions
 #define LEFT_MOVEMENT   0b10000000
 #define RIGHT_MOVEMENT  0b01000000
-#define UP_MOVEMENT     0b00100000
-#define DOWN_MOVEMENT   0b00010000
-#define NO_MOVEMENT     0b00000000
+#define JUMP_MOVEMENT   0b00100000
+#define CROUCH_MOVEMENT 0b00010000
+
+// BS: Block Standard
+#define GRASS_BLOCK     0b10000000
+#define COBBLE_BLOCK    0b01000000
+#define LAVA_BLOCK      0b00100000
 
 #endif 

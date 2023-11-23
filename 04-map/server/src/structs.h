@@ -5,19 +5,15 @@
 
 struct connection {
     int id;
-    int obj_id;
     TCPsocket socket;
 };
 
-struct object {
-    int id;
-    int x;
-    int y;
-
-    int colliding;
-    int force;
-    
-    uint8_t state;
+struct map {
+    int width; 
+    int height; 
+    int *blocks;
 };
+
+struct map *generate_map(int width, int height);
 
 #endif

@@ -21,11 +21,16 @@
 // MCSA: Message Communication Standard Actions
 #define LEFT_MOVEMENT   0b10000000
 #define RIGHT_MOVEMENT  0b01000000
-#define UP_MOVEMENT     0b00100000
-#define DOWN_MOVEMENT   0b00010000
+#define JUMP_MOVEMENT   0b00100000
+#define CROUCH_MOVEMENT 0b00010000
 
 // OC: Object Constants
 #define GRAVITY 2
 #define MOVEMENT_SPEED 10
+
+// BS: Block Standard
+#define GRASS_BLOCK     1
+#define COBBLE_BLOCK    2
+#define LAVA_BLOCK      3
 
 #endif 

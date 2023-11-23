@@ -16,7 +16,7 @@ struct object *create_object(SDL_Texture *texture, int scale, int resolution) {
     return object;
 }
 
-void draw_object(struct game *game, struct object *object) {
+void frame_draw_object(struct game *game, struct object *object) {
     int texture_width; 
     SDL_Rect src;
     SDL_Rect dest;
@@ -44,6 +44,24 @@ void draw_object(struct game *game, struct object *object) {
         object->animation_slide = (object->animation_slide+1) % (texture_width / object->resolution); // clock arithmetic: jump back to first animation slide 
     }
 }
+
+void draw_object(struct game *game, struct object *object) {
+    SDL_Rect src; 
+    SDL_Rect dest; 
+
+    src.x = 0; 
+    src.y = 0; 
+    src.w = object->resolution;
+    src.h = object->resolution;
+
+    dest.x = object->x; 
+    dest.y = object->y; 
+    dest.w = object->resolution * object->scale; 
+    dest.h = object->resolution * object->scale;
+
+    SDL_RenderCopyEx(game->renderer, object->texture, &src, &dest, 0, NULL, SDL_FLIP_NONE);
+}
+
 
 void switch_animation(struct object *object, SDL_Texture *animation) {
     if (object->texture == animation)

@@ -9,8 +9,7 @@ struct game {
 
     int left; 
     int right;
-    int up; 
-    int down;
+    int jump;
 };
 
 struct animation {
@@ -43,6 +42,7 @@ struct object {
 
 struct object *create_object(SDL_Texture *texture, int scale, int resolution);
 void draw_object(struct game *game, struct object *object);
+void frame_draw_object(struct game *game, struct object *object);
 void switch_animation(struct object *object, SDL_Texture *animation); 
 
 #endif 
