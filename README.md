@@ -2,9 +2,9 @@
     <img src=".imgs/icon.png" width="200"/>
 </p>
 
-# SDL Playground 
+# Graphics
 
-My little playground for SDL.
+My little playground for everything graphics
 
 ## License
 

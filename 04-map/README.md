@@ -1,6 +1,6 @@
-<!-- <p align="center"> -->
-<!--     <img src=".imgs/showcase.png" width="300" /> -->
-<!-- </p> -->
+<p align="center">
+    <img src=".imgs/showcase.png" width="300" />
+</p>
 
 # Map
 
