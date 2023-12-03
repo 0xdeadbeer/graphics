@@ -2,69 +2,52 @@
 #include <fstream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "game.hpp"
 #include "texture.hpp"
-#include "object.hpp"
+#include "sprite.hpp"
 #include "other/stb_image.h"
 
 Game::Game(GLFWwindow *window) {
     this->window = window;
-    this->program = glCreateProgram();
+    this->program = Program();
+    stbi_set_flip_vertically_on_load(true);
 }
 
-void Game::setup() {
-}
-
-void Game::run(int initial_width, int initial_height) {
+// code this later lol
+int Game::setup(int initial_width, int initial_height) {
     glfwSetKeyCallback(this->window, Game::input_callback);
     glfwSetFramebufferSizeCallback(this->window, Game::resize_callback);
 
     Game::resize_callback(this->window, initial_width, initial_height);
 
-    this->vshader = Game::load_shader("assets/shaders/shader.vert", GL_VERTEX_SHADER);
-    if (!this->vshader) 
-        return; 
-
-    this->fshader = Game::load_shader("assets/shaders/shader.frag", GL_FRAGMENT_SHADER);
-    if (!this->fshader)
-        return;
-
-    if (Game::link_program())
-        return;
-
-    stbi_set_flip_vertically_on_load(true);
-
-    int width; 
-    int height; 
-    int channels; 
-    unsigned char *image_bytes = stbi_load("assets/wall.jpg", &width, &height, &channels, 0);
-    if (image_bytes == NULL) {
-        std::cout << "Error: failed loading image data" << std::endl; 
-        return;
+    int ret = this->program.add_shader("assets/shaders/vertex.glsl", GL_VERTEX_SHADER);
+    if (ret != 0) {
+        std::cout << "Error: failed adding vertex shader" << std::endl;
+        return -1;
     }
 
-    Texture new_texture; 
-    new_texture.bind_texture();
-    new_texture.load_data(image_bytes, width, height);
+    ret = this->program.add_shader("assets/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
+    if (ret != 0) {
+        std::cout << "Error: failed adding fragment shader" << std::endl;
+        return -1;
+    }
 
-    stbi_image_free(image_bytes);
+    if (this->program.link() != 0) {
+        std::cout << "Error: failed linking program" << std::endl; 
+        return -1;
+    }
 
-    Object new_object(this, new_texture);  
+    glUseProgram(this->program.id);
+    return 0;
+}
 
-    new_object.vertices = {
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, 
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, 
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, 
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f
-    };
-
-    new_object.indices = {
-        0, 1, 3,
-        1, 2, 3 
-    };
-
-    new_object.bake();
-    this->objects.push_back(&new_object);
+void Game::run() {
+    Sprite sprite("assets/player/idle.png", SPLIT_TEXTURE);
+    sprite.bake();
+    this->sprites.push_back(&sprite);
 
     Game::logic();
 }
@@ -91,8 +74,8 @@ void Game::logic() {
         glClearColor(0, 0, 0, 1); 
         glClear(GL_COLOR_BUFFER_BIT); 
 
-        for (int i = 0; i < this->objects.size(); i++) 
-            (*this->objects[i]).draw();
+        for (int i = 0; i < this->sprites.size(); i++) 
+            Game::draw(this->sprites[i]);
         
         glfwPollEvents(); 
         glfwSwapBuffers(this->window);
@@ -101,64 +84,44 @@ void Game::logic() {
     glBindVertexArray(0);
 }
 
-unsigned int Game::load_shader(const char *path, unsigned int type) {
-    std::string source = Game::read_file(path);
-    const char *bytes = source.c_str(); 
+void Game::draw(Sprite *sprite) {
+    unsigned int program = this->program.id;
+    glUseProgram(program);
 
-    unsigned int new_shader = glCreateShader(type); 
-    if (!new_shader) 
-        return 0; 
+    glUniform3i(glGetUniformLocation(program, "offset"), sprite->pos.x, sprite->pos.y, sprite->pos.z); 
+    glUniform3f(glGetUniformLocation(program, "size"), sprite->size.x, sprite->size.y, sprite->size.z);
+    glUniform1i(glGetUniformLocation(program, "texture1"), 0);
 
-    glShaderSource(new_shader, 1, &bytes, NULL); 
-    glCompileShader(new_shader); 
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
 
-    int success; 
-    char info_log[512]; 
-    glGetShaderiv(new_shader, GL_COMPILE_STATUS, &success); 
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 
-    if (!success) {
-        glGetShaderInfoLog(new_shader, 512, NULL, info_log); 
-        std::cout << "Error: failed compiling new shader " << info_log << std::endl; 
-        return 0;
-    }
+    glm::mat4 projection = glm::mat4(1.0f); 
 
-    return new_shader;
+    int width, height;
+    float half_width, half_height;
+    glfwGetWindowSize(this->window, &width, &height);
+
+    half_width = (float) width / 2; 
+    half_height = (float) height / 2; 
+
+    projection = glm::ortho(-half_width/100, half_width/100, -half_height/100, half_height/100, 0.1f, 100.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(program,"view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+    glBindVertexArray(sprite->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, sprite->vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sprite->ebo);
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(struct vertex) * sprite->vertices.size(), sprite->vertices.data());
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(int) * sprite->indices.size(), sprite->indices.data());
+
+    glActiveTexture(GL_TEXTURE0); 
+    glBindTexture(GL_TEXTURE_2D, sprite->texture.texture_id);
+
+    glDrawElements(GL_TRIANGLES, sprite->indices.size(), GL_UNSIGNED_INT, 0);
 }
-
-int Game::link_program() {
-    glAttachShader(this->program, this->vshader); 
-    glAttachShader(this->program, this->fshader); 
-    glLinkProgram(this->program);
-
-    int success; 
-    char info_log[512]; 
-    glGetProgramiv(this->program, GL_LINK_STATUS, &success); 
-
-    if (!success) {
-        glGetProgramInfoLog(this->program, 512, NULL, info_log); 
-        std::cout << "Error: failed linking program " << info_log << std::endl; 
-        return -1; 
-    }
-
-    return 0;
-}
-
-std::string Game::read_file(const char *path) {
-    std::string content;
-    std::ifstream fs(path, std::ios::in);
-
-    if(!fs.is_open()) {
-        std::cerr << "Error: Could not read file " << path << ". File does not exist." << std::endl;
-        return NULL;
-    }
-
-    std::string line = "";
-    while(!fs.eof()) {
-        std::getline(fs, line);
-        content.append(line + "\n");
-    }
-
-    fs.close();
-    return content;
-}
-

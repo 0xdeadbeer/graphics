@@ -3,17 +3,16 @@
 #include <iostream>
 #include <vector>
 #include <GLFW/glfw3.h>
-#include "object.hpp"
+#include "program.hpp"
+#include "sprite.hpp"
 
 class Game {
 public: 
     Game(GLFWwindow *window);
-    static std::string read_file(const char *path);
-    unsigned int load_shader(const char *path, unsigned int type);
-    int link_program();
-    void setup();
-    void run(int initial_width, int initial_height);
+    int setup(int initial_width, int initial_height);
+    void run();
     void logic();
+    void draw(Sprite *sprite);
 
     // callbacks 
     static void input_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -21,13 +20,7 @@ public:
 
     GLFWwindow *window;
 
-    std::vector<Object*> objects;
+    std::vector<Sprite *> sprites;
 
-    unsigned int vao; 
-    unsigned int vbo; 
-    unsigned int ebo;
-    
-    unsigned int vshader; 
-    unsigned int fshader; 
-    unsigned int program;
+    Program program;
 };

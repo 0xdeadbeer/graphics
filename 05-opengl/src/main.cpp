@@ -32,8 +32,8 @@ int main() {
     }
 
     Game main_game(window);
-
-    main_game.run(initial_width, initial_height);
+    main_game.setup(initial_width, initial_height);
+    main_game.run();
 
     glfwTerminate();
     return 0;

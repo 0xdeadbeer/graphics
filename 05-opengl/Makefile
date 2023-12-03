@@ -1,6 +1,6 @@
 CC=g++
-CFLAGS=`pkg-config --cflags glfw3 glew`
-LDFLAGS=`pkg-config --libs glfw3 glew`
+CFLAGS=-std=c++20 `pkg-config --cflags glfw3 glew glm`
+LDFLAGS=`pkg-config --libs glfw3 glew glm`
 INCLUDE=/usr/include/stb/
 TARGET=opengl
 SDIR=src
