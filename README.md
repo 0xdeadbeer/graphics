@@ -1,7 +1,9 @@
 <p align="center">
     <img src=".imgs/sdl.png" width="200"/>
     <br>
+    <br>
     <img src=".imgs/opengl.png" width="200"/>
+    <br>
     <br>
     <img src=".imgs/monogame.png" width="200"/>
     <br>
