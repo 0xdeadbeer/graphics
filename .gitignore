@@ -4,3 +4,4 @@ build/
 *.o
 compile_commands.json
 .idea/
+bin/

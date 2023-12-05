@@ -1,0 +1,3 @@
+[submodule "06-monogame/Introduction/themes/hugo-bearcub"]
+	path = 06-monogame/Introduction/themes/hugo-bearcub
+	url = https://github.com/clente/hugo-bearcub

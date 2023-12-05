@@ -13,7 +13,10 @@
 Game::Game(GLFWwindow *window) {
     this->window = window;
     this->program = Program();
+
     stbi_set_flip_vertically_on_load(true);
+
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &this->texture_slots);
 }
 
 // code this later lol
@@ -41,13 +44,39 @@ int Game::setup(int initial_width, int initial_height) {
     }
 
     glUseProgram(this->program.id);
+
+    glGenVertexArrays(1, &this->vao);
+    glGenBuffers(1, &this->vbo);
+    glGenBuffers(1, &this->ebo);
+
+    glBindVertexArray(this->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
+
     return 0;
 }
 
 void Game::run() {
+    this->counter = 0;
+    this->vbo_offset = 0;
+    this->ebo_offset = 0; 
+
     Sprite sprite("assets/player/idle.png", SPLIT_TEXTURE);
     sprite.bake();
     this->sprites.push_back(&sprite);
+
+    glBindVertexArray(this->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(struct vertex) * 4 * this->texture_slots, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * 6 * this->texture_slots, nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex), (void *) offsetof(vertex, position));
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct vertex), (void *) offsetof(vertex, texture));
+    glEnableVertexAttribArray(1);
 
     Game::logic();
 }
@@ -74,8 +103,24 @@ void Game::logic() {
         glClearColor(0, 0, 0, 1); 
         glClear(GL_COLOR_BUFFER_BIT); 
 
-        for (int i = 0; i < this->sprites.size(); i++) 
-            Game::draw(this->sprites[i]);
+
+        for (int sprite = 0; sprite < this->sprites.size(); sprite++, counter++) {
+            Game::load(this->sprites[sprite], this->counter);
+
+            std::cout << "Counter: " << counter << " Texture slots: " << this->texture_slots << std::endl;
+            if (counter > 0 && counter % this->texture_slots == 0) {
+                Game::draw();
+                this->counter = 0;
+                this->vbo_offset = 0;
+                this->ebo_offset = 0; 
+            }
+
+        }
+
+        Game::draw();
+        this->counter = 0;
+        this->vbo_offset = 0;
+        this->ebo_offset = 0; 
         
         glfwPollEvents(); 
         glfwSwapBuffers(this->window);
@@ -84,16 +129,25 @@ void Game::logic() {
     glBindVertexArray(0);
 }
 
-void Game::draw(Sprite *sprite) {
+void Game::load(Sprite *sprite, int count) {
     unsigned int program = this->program.id;
     glUseProgram(program);
 
-    glUniform3i(glGetUniformLocation(program, "offset"), sprite->pos.x, sprite->pos.y, sprite->pos.z); 
-    glUniform3f(glGetUniformLocation(program, "size"), sprite->size.x, sprite->size.y, sprite->size.z);
-    glUniform1i(glGetUniformLocation(program, "texture1"), 0);
+    glUniform1i(glGetUniformLocation(program, "sampler"), count);
 
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+    glBufferSubData(GL_ARRAY_BUFFER, vbo_offset, sizeof(struct vertex) * sprite->vertices.size(), sprite->vertices.data());
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, ebo_offset, sizeof(int) * sprite->indices.size(), sprite->indices.data());
+
+    vbo_offset += sizeof(struct vertex) * sprite->vertices.size(); 
+    ebo_offset += sizeof(int) * sprite->indices.size();
+    
+    glActiveTexture(GL_TEXTURE0 + count);
+    glBindTexture(GL_TEXTURE_2D, sprite->texture.texture_id);
+}
+
+void Game::draw() {
+    unsigned int program = this->program.id;
+    glUseProgram(program);
 
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
@@ -109,19 +163,10 @@ void Game::draw(Sprite *sprite) {
 
     projection = glm::ortho(-half_width/100, half_width/100, -half_height/100, half_height/100, 0.1f, 100.0f);
 
-    glUniformMatrix4fv(glGetUniformLocation(program, "model"), 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(glGetUniformLocation(program,"view"), 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-    glBindVertexArray(sprite->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, sprite->vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sprite->ebo);
+    glDrawElements(GL_TRIANGLES, this->sprites[0]->indices.size(), GL_UNSIGNED_INT, 0);
+    std::cout << "Error: " << glGetError() << std::endl;
 
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(struct vertex) * sprite->vertices.size(), sprite->vertices.data());
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(int) * sprite->indices.size(), sprite->indices.data());
-
-    glActiveTexture(GL_TEXTURE0); 
-    glBindTexture(GL_TEXTURE_2D, sprite->texture.texture_id);
-
-    glDrawElements(GL_TRIANGLES, sprite->indices.size(), GL_UNSIGNED_INT, 0);
 }

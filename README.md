@@ -1,5 +1,7 @@
 <p align="center">
-    <img src=".imgs/icon.png" width="200"/>
+    <img src=".imgs/sdl.png" width="200"/>
+    <img src=".imgs/opengl.png" width="200"/>
+    <img src=".imgs/monogame.png" width="200"/>
 </p>
 
 # Graphics

@@ -12,15 +12,23 @@ public:
     int setup(int initial_width, int initial_height);
     void run();
     void logic();
-    void draw(Sprite *sprite);
+    void load(Sprite *sprite, int counter);
+    void draw();
 
     // callbacks 
     static void input_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
     static void resize_callback(GLFWwindow *window, int new_width, int new_height);
 
     GLFWwindow *window;
+    Program program;
 
     std::vector<Sprite *> sprites;
 
-    Program program;
+    int texture_slots;
+    unsigned int vao; 
+    unsigned int vbo; 
+    unsigned int ebo;
+    unsigned int counter;
+    unsigned int vbo_offset;
+    unsigned int ebo_offset;
 };

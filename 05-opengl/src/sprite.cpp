@@ -23,10 +23,6 @@ Sprite::Sprite(const char *path, enum TextureType type) : texture(type) {
 
     stbi_image_free(image_bytes);
 
-    glGenVertexArrays(1, &this->vao);
-    glGenBuffers(1, &this->vbo);
-    glGenBuffers(1, &this->ebo);
-
     this->pos = glm::vec3(0.0f);
     this->size = glm::vec3(1.0f);
     this->rot = glm::vec3(0.0f);
@@ -60,20 +56,4 @@ void Sprite::bake() {
             v->texture[1] = tex_y;
         }
     }
-
-    glBindVertexArray(this->vao); 
-
-    glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-    glBufferData(GL_ARRAY_BUFFER, this->vertices.size() * sizeof(struct vertex), nullptr, GL_DYNAMIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->indices.size() * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex), (void *) offsetof(vertex, position));
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct vertex), (void *) offsetof(vertex, texture));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
 }
