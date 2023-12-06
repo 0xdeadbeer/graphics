@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using System.Linq;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using GUI.UIElements;
@@ -9,7 +11,7 @@ public class Game1 : Game
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-    private Button mainButton;
+    private Scene mainScene; 
 
     public Game1()
     {
@@ -20,14 +22,34 @@ public class Game1 : Game
 
     protected override void Initialize()
     {
-        mainButton = new Button(new Vector2(10.0f, 10.0f), new Vector2(80.0f, 40.0f), null, _graphics); 
+        _spriteBatch = new SpriteBatch(GraphicsDevice);
+
+        Scene.graphics = _graphics;
+        Scene.spriteBatch = _spriteBatch;
+        Scene.content = Content;
+        
+        mainScene = new Scene();
+        DrawableData drawableData = new DrawableData(null);
+        drawableData.scale = new Vector2(80.0f, 40.0f);
+
+        void buttonOnClick(Button obj)
+        {
+            Console.WriteLine("ACTION CALLED SUCCESSFULLY!");
+        }
+
+        ButtonData buttonData = new ButtonData(buttonOnClick);
+        buttonData.bgColor = Color.Red;
+        buttonData.fgColor = Color.White;
+
+        Button  mainButton = new Button(drawableData, buttonData);
+        
+        mainScene.drawables.Add(mainButton);
         
         base.Initialize();
     }
 
     protected override void LoadContent()
     {
-        _spriteBatch = new SpriteBatch(GraphicsDevice);
     }
 
     protected override void Update(GameTime gameTime)
@@ -35,7 +57,7 @@ public class Game1 : Game
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
         
-        mainButton.Update(gameTime);
+        mainScene.Update(gameTime);
 
         base.Update(gameTime);
     }
@@ -44,9 +66,7 @@ public class Game1 : Game
     {
         GraphicsDevice.Clear(Color.Black);
 
-        _spriteBatch.Begin();
-        mainButton.Draw(_spriteBatch, gameTime);
-        _spriteBatch.End();
+        mainScene.Draw(gameTime);
 
         base.Draw(gameTime);
     }
