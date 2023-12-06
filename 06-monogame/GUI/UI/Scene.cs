@@ -55,26 +55,25 @@ public class Scene
         drawables = new List<Drawable>();
     }
     
-    public void Initialize(GameTime gameTime)
+    public void Initialize()
     {
-        
+        foreach (Drawable drawable in drawables)
+            drawable.Initialize();
     }
 
     public void Update(GameTime gameTime)
     {
         foreach (Drawable drawable in drawables)
-        {
             drawable.Update(gameTime);
-        }
     }
 
     public void Draw(GameTime gameTime)
     {
         spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
+        
         foreach (Drawable drawable in drawables)
-        {
             drawable.Draw(gameTime);
-        }
+        
         spriteBatch.End();
     }
 }

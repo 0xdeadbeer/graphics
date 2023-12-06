@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Vector2 = Microsoft.Xna.Framework.Vector2;
@@ -16,13 +17,20 @@ public class ButtonData
 
     public Color pressedBgColor;
     public Color pressedFgColor;
+
+    public Color idleBgColor;
+    public Color idleFgColor;
     
     public bool isPressed = false;
     public bool isReleased = false;
     public bool isHovered = false;
-    public bool isNone = false;
+    public bool isIdle = false;
 
     public Action<Button>? onClick;
+
+    public string text = "";
+    public Vector2 textPosition;
+    public Vector2 textResolution;
 
     public ButtonData(Action<Button>? onClick)
     {
@@ -33,7 +41,9 @@ public class ButtonData
 public class Button : Drawable
 {
     private DrawableData _drawableData;
-    public ButtonData _buttonData; 
+    public ButtonData _buttonData;
+
+    private SpriteFont buttonFont; 
     
     public Button(DrawableData data, ButtonData buttonData)
     {
@@ -41,9 +51,9 @@ public class Button : Drawable
         _buttonData = buttonData;
     }
 
-    public override void Initialize(GameTime gameTime)
+    public override void Initialize()
     {
-        
+        buttonFont = Scene.content.Load<SpriteFont>("Fonts/default");
     }
 
     void onPressed()
@@ -53,8 +63,10 @@ public class Button : Drawable
 
         Console.WriteLine("I'm being pressed!");
         _buttonData.bgColor = Color.Red;
+        _buttonData.fgColor = Color.Black;
 
-        _buttonData.onClick(this);
+        if (_buttonData.onClick is not null)
+            _buttonData.onClick(this);
         
         _buttonData.isReleased = false;
         _buttonData.isPressed = true;
@@ -65,7 +77,8 @@ public class Button : Drawable
         if (!_buttonData.isPressed)
             return;
 
-        _buttonData.bgColor = Color.Yellow; 
+        _buttonData.bgColor = Color.Yellow;
+        _buttonData.fgColor = Color.Red;
         
         _buttonData.isPressed = false;
         _buttonData.isReleased = true;
@@ -78,20 +91,22 @@ public class Button : Drawable
         
         Console.WriteLine("I'm being hovered!");
         _buttonData.bgColor = Color.Yellow;
+        _buttonData.fgColor = Color.Red;
 
         _buttonData.isHovered = true;
     }
 
-    void onNone()
+    void onIdle()
     {
         _buttonData.bgColor = Color.Red;
+        _buttonData.fgColor = Color.Yellow;
         
         _buttonData.isPressed = false;
         _buttonData.isReleased = false;
         _buttonData.isHovered = false;
     }
 
-    public override void Update(GameTime gameTime)
+    public void buttonLogic()
     {
         var mstate = Mouse.GetState();
         Vector2 mousePosition = mstate.Position.ToVector2();
@@ -101,7 +116,7 @@ public class Button : Drawable
 
         if (outsideHorizontalBoundary || outsideVerticalBoundary)
         {
-            onNone();
+            onIdle();
             return;
         }
 
@@ -115,8 +130,21 @@ public class Button : Drawable
         {
             onReleased();
         }
-
+        
         onHovered();
+    }
+
+    public override void Update(GameTime gameTime)
+    {
+        buttonLogic();
+
+        _buttonData.textResolution = buttonFont.MeasureString(_buttonData.text);
+        
+        // we want to center the text so 
+        Vector2 buttonCenter = (_drawableData.position + (_drawableData.scale / 2.0f));
+        Vector2 textHalfResolution = _buttonData.textResolution / 2.0f;
+
+        _buttonData.textPosition = buttonCenter - textHalfResolution;
     } 
     
     public override void Draw(GameTime gameTime)
@@ -126,11 +154,24 @@ public class Button : Drawable
             _drawableData.position, 
             null, 
             _buttonData.bgColor, 
-            0.0f, 
+            _drawableData.rotation,
             Vector2.Zero,
             _drawableData.scale, 
             SpriteEffects.None, 
             0f
+        );
+        
+        Scene.spriteBatch.DrawString(
+            buttonFont,
+            _buttonData.text, 
+            _buttonData.textPosition,
+            _buttonData.fgColor, 
+            _drawableData.rotation,
+            Vector2.Zero,
+            Vector2.One, 
+            SpriteEffects.None, 
+            0f, 
+            false
         );
     }
 }

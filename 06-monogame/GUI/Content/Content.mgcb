@@ -25,3 +25,10 @@
 /processorParam:TextureFormat=Color
 /build:button-default-texture.png
 
+#begin Fonts/default.spritefont
+/importer:FontDescriptionImporter
+/processor:LocalizedFontProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Fonts/default.spritefont
+

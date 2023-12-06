@@ -34,7 +34,7 @@ public enum DrawableType
 public abstract class Drawable
 {
     public DrawableType drawableType;
-    public abstract void Initialize(GameTime gameTime);
+    public abstract void Initialize();
     public abstract void Update(GameTime gameTime);
     public abstract void Draw(GameTime gameTime);
 }
