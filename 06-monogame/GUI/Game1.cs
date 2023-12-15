@@ -29,8 +29,7 @@ public class Game1 : Game
         Scene.content = Content;
         
         mainScene = new Scene();
-        DrawableData drawableData = new DrawableData(null);
-        drawableData.scale = new Vector2(120.0f, 40.0f);
+        DrawableData drawableData = new DrawableData("button");
         drawableData.position = new Vector2(100.0f, 100.0f);
 
         void buttonOnClick(Button obj)
@@ -39,8 +38,6 @@ public class Game1 : Game
         }
 
         ButtonData buttonData = new ButtonData(buttonOnClick);
-        buttonData.bgColor = Color.Red;
-        buttonData.fgColor = Color.White;
         buttonData.text = "Click me!";
 
         Button  mainButton = new Button(drawableData, buttonData);

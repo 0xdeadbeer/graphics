@@ -12,14 +12,14 @@ public class ButtonData
     public Color bgColor;
     public Color fgColor;
 
-    public Color hoverBgColor;
-    public Color hoverFgColor;
+    public Color? hoverBgColor; 
+    public Color? hoverFgColor;
 
-    public Color pressedBgColor;
-    public Color pressedFgColor;
+    public Color? pressedBgColor;
+    public Color? pressedFgColor;
 
-    public Color idleBgColor;
-    public Color idleFgColor;
+    public Color idleBgColor = Color.Black;
+    public Color idleFgColor = Color.White;
     
     public bool isPressed = false;
     public bool isReleased = false;
@@ -31,6 +31,7 @@ public class ButtonData
     public string text = "";
     public Vector2 textPosition;
     public Vector2 textResolution;
+    public Vector2 textScale;
 
     public ButtonData(Action<Button>? onClick)
     {
@@ -61,9 +62,8 @@ public class Button : Drawable
         if (_buttonData.isPressed)
             return;
 
-        Console.WriteLine("I'm being pressed!");
-        _buttonData.bgColor = Color.Red;
-        _buttonData.fgColor = Color.Black;
+        _buttonData.bgColor = _buttonData.pressedBgColor ?? _buttonData.idleBgColor;
+        _buttonData.fgColor = _buttonData.pressedFgColor ?? _buttonData.idleFgColor;
 
         if (_buttonData.onClick is not null)
             _buttonData.onClick(this);
@@ -77,8 +77,8 @@ public class Button : Drawable
         if (!_buttonData.isPressed)
             return;
 
-        _buttonData.bgColor = Color.Yellow;
-        _buttonData.fgColor = Color.Red;
+        _buttonData.bgColor = _buttonData.hoverBgColor ?? _buttonData.idleBgColor;
+        _buttonData.fgColor = _buttonData.hoverFgColor ?? _buttonData.idleFgColor;
         
         _buttonData.isPressed = false;
         _buttonData.isReleased = true;
@@ -89,17 +89,16 @@ public class Button : Drawable
         if (_buttonData.isHovered)
             return;
         
-        Console.WriteLine("I'm being hovered!");
-        _buttonData.bgColor = Color.Yellow;
-        _buttonData.fgColor = Color.Red;
+        _buttonData.bgColor = _buttonData.hoverBgColor ?? _buttonData.idleBgColor;
+        _buttonData.fgColor = _buttonData.hoverFgColor ?? _buttonData.idleFgColor;
 
         _buttonData.isHovered = true;
     }
 
     void onIdle()
     {
-        _buttonData.bgColor = Color.Red;
-        _buttonData.fgColor = Color.Yellow;
+        _buttonData.bgColor = _buttonData.idleBgColor;
+        _buttonData.fgColor = _buttonData.idleFgColor;
         
         _buttonData.isPressed = false;
         _buttonData.isReleased = false;
@@ -141,7 +140,7 @@ public class Button : Drawable
         _buttonData.textResolution = buttonFont.MeasureString(_buttonData.text);
         
         // we want to center the text so 
-        Vector2 buttonCenter = (_drawableData.position + (_drawableData.scale / 2.0f));
+        Vector2 buttonCenter = (_drawableData.position + (Vector2.One / 2.0f));
         Vector2 textHalfResolution = _buttonData.textResolution / 2.0f;
 
         _buttonData.textPosition = buttonCenter - textHalfResolution;
@@ -153,10 +152,10 @@ public class Button : Drawable
             _drawableData.texture, 
             _drawableData.position, 
             null, 
-            _buttonData.bgColor, 
+            Color.White, 
             _drawableData.rotation,
             Vector2.Zero,
-            _drawableData.scale, 
+            _drawableData.scale,
             SpriteEffects.None, 
             0f
         );
@@ -168,7 +167,7 @@ public class Button : Drawable
             _buttonData.fgColor, 
             _drawableData.rotation,
             Vector2.Zero,
-            Vector2.One, 
+            _drawableData.scale, 
             SpriteEffects.None, 
             0f, 
             false

@@ -9,14 +9,23 @@ public class DrawableData
 {
     public Texture2D texture;
     public Vector2 position = Vector2.Zero;
-    public Vector2 scale = Vector2.One;
+    private Vector2 scale_multiplier = Vector2.One;
+    public Vector2 scale
+    {
+        get { return scale_multiplier * new Vector2(texture.Width, texture.Height); }
+        set
+        {
+            scale_multiplier = value;
+        }
+    }
+    
     public float rotation = 0.0f;
     
-    public DrawableData(Texture2D? texture)
+    public DrawableData(string? texture)
     {
         if (texture is not null)
         {
-            this.texture = texture;
+            this.texture = Scene.content.Load<Texture2D>(texture);
             return;
         }
 
