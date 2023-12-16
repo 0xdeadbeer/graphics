@@ -1,3 +1,8 @@
-# Boilerplate API
+<p align="center"> 
+    <img src=".imgs/showcase.png" width="300" /> 
+</p>
 
-Creating a boilerplate API to abstract away OpenGL
+# Boilerplate
+
+Creating a boilerplate API to abstract away OpenGL. 
+ - Also added my first ever batch renderer 

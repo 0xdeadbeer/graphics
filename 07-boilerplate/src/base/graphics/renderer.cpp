@@ -92,7 +92,7 @@ int Renderer::setup(std::optional<Program> program) {
     glEnableVertexAttribArray(DEFAULT_TEXTURE_ATTRIBUTE);
 
     glVertexAttribPointer(
-        DEFAULT_COLOR_ATTRIBUTE, 
+        DEFAULT_CTT_ATTRIBUTE, 
         1, 
         GL_FLOAT,
         GL_FALSE,
@@ -107,9 +107,20 @@ int Renderer::setup(std::optional<Program> program) {
     return RET_OK;
 }
 
-void Renderer::render() {
+void Renderer::draw(struct RendererData data) {
+    if (batch_buffer.size() >= DEFAULT_VBO_SIZE) {
+        LOG(LOG_WARN, "Batch buffer limit reached!");
+        return;
+    }
+
+    batch_buffer.push_back(data);
+}
+
+void Renderer::batch() {
     glBindVertexArray(this->array_buffer_id);
     glBindBuffer(GL_ARRAY_BUFFER, this->vertex_buffer_id);
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, batch_buffer.size() * sizeof(struct RendererData), batch_buffer.data());
 
     glUseProgram(this->program.id);
 
@@ -117,6 +128,8 @@ void Renderer::render() {
     glUniformMatrix4fv(glGetUniformLocation(this->program.id, "projection_matrix"), 1, GL_FALSE, &this->projection_matrix[0][0]);
 
     glDrawArrays(GL_TRIANGLES, 0, DEFAULT_VBO_SIZE);
+
+    batch_buffer.clear();
 }
 
 void Renderer::logic() {

@@ -5,6 +5,7 @@
 #include <glm/vec4.hpp>
 #include <glm/vec2.hpp>
 #include <GL/glew.h>
+#include "../base/graphics/renderer.hpp"
 
 class Sprite {
 public:
@@ -14,9 +15,10 @@ public:
     glm::vec2 texture_position;
     float ctt;
 
-    GLuint vertex_buffer_id;
+    // GLuint vertex_buffer_id;
+    Renderer &renderer;
 
-    Sprite(GLuint vertex_buffer_id);
+    Sprite(Renderer &renderer);
     ~Sprite();
 
     void bake();

@@ -24,5 +24,9 @@ public:
 
     int setup(std::optional<Program> program = std::nullopt);
     void logic();
-    void render();
+
+    std::vector<struct RendererData> batch_buffer;
+
+    void draw(struct RendererData data);
+    void batch();
 };

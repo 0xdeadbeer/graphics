@@ -15,8 +15,9 @@ out float _ctt;
 
 void main() {
     vec3 origined_position = origin.xyz + position.xyz;
+    origined_position *= 0.2;
     //gl_Position = projection_matrix * view_matrix * position;
-    gl_Position = projection_matrix * view_matrix * vec4(position.xyz, 1.0);
+    gl_Position = projection_matrix * view_matrix * vec4(origined_position, 1.0);
     _color = color;
     _texture_position = texture_position;
     _ctt = ctt;

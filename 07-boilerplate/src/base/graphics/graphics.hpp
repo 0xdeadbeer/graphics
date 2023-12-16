@@ -7,4 +7,4 @@
 #define DEFAULT_CTT_ATTRIBUTE       4 
 
 #define QUAD                        6 
-#define DEFAULT_VBO_SIZE            QUAD * 1000 // unit: rows of RenderData
+#define DEFAULT_VBO_SIZE            QUAD * 1000000 // unit: rows of RenderData
